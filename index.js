@@ -13,12 +13,19 @@ const COLLECTION = 'submissions';
 let db;
 
 // Connect to MongoDB
-async function connectDB() {
-  const client = new MongoClient(MONGO_URI);
-  await client.connect();
-  db = client.db(DB_NAME);
-  console.log('Connected to MongoDB');
-}
+MongoClient.connect(MONGO_URI)
+  .then(client => {
+    db = client.db(DB_NAME);
+    console.log('Connected to MongoDB');
+  })
+  .catch(err => {
+    console.log('MongoDB connection error:', err.message);
+  });
+
+// Health check
+app.get('/', (req, res) => {
+  res.json({ status: 'API is running' });
+});
 
 // POST - Create new submission
 app.post('/submissions', async (req, res) => {
@@ -63,8 +70,5 @@ app.put('/submissions/:id', async (req, res) => {
   }
 });
 
-// Start server
-connectDB().then(() => {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log(`API running on port ${PORT}`));
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`API running on port ${PORT}`));
