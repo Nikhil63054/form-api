@@ -10,18 +10,6 @@ const MONGO_URI = process.env.MONGO_URI;
 const DB_NAME = 'formSubmissions';
 const COLLECTION = 'submissions';
 
-let db;
-
-// Connect to MongoDB
-MongoClient.connect(MONGO_URI)
-  .then(client => {
-    db = client.db(DB_NAME);
-    console.log('Connected to MongoDB');
-  })
-  .catch(err => {
-    console.log('MongoDB connection error:', err.message);
-  });
-
 // Health check
 app.get('/', (req, res) => {
   res.json({ status: 'API is running' });
@@ -30,15 +18,17 @@ app.get('/', (req, res) => {
 // POST - Create new submission
 app.post('/submissions', async (req, res) => {
   try {
+    const client = new MongoClient(MONGO_URI);
+    await client.connect();
+    const db = client.db(DB_NAME);
     const data = req.body;
     data.createdAt = new Date().toISOString();
     data.modifiedAt = new Date().toISOString();
     const result = await db.collection(COLLECTION).insertOne(data);
-    res.json({ 
-      success: true, 
-      submissionId: result.insertedId 
-    });
+    await client.close();
+    res.json({ success: true, submissionId: result.insertedId });
   } catch (err) {
+    console.log('POST error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -46,11 +36,16 @@ app.post('/submissions', async (req, res) => {
 // GET - Fetch submission by ID
 app.get('/submissions/:id', async (req, res) => {
   try {
-    const result = await db.collection(COLLECTION).findOne({ 
-      _id: new ObjectId(req.params.id) 
+    const client = new MongoClient(MONGO_URI);
+    await client.connect();
+    const db = client.db(DB_NAME);
+    const result = await db.collection(COLLECTION).findOne({
+      _id: new ObjectId(req.params.id)
     });
+    await client.close();
     res.json({ success: true, data: result });
   } catch (err) {
+    console.log('GET error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -58,14 +53,19 @@ app.get('/submissions/:id', async (req, res) => {
 // PUT - Update existing submission
 app.put('/submissions/:id', async (req, res) => {
   try {
+    const client = new MongoClient(MONGO_URI);
+    await client.connect();
+    const db = client.db(DB_NAME);
     const data = req.body;
     data.modifiedAt = new Date().toISOString();
     await db.collection(COLLECTION).updateOne(
       { _id: new ObjectId(req.params.id) },
       { $set: data }
     );
+    await client.close();
     res.json({ success: true });
   } catch (err) {
+    console.log('PUT error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
