@@ -51,6 +51,7 @@ app.get('/submissions/:id', async (req, res) => {
 });
 
 // PUT - Update existing submission
+// PUT - Update existing submission
 app.put('/submissions/:id', async (req, res) => {
   try {
     const client = new MongoClient(MONGO_URI);
@@ -58,12 +59,15 @@ app.put('/submissions/:id', async (req, res) => {
     const db = client.db(DB_NAME);
     const data = req.body;
     data.modifiedAt = new Date().toISOString();
-    await db.collection(COLLECTION).updateOne(
+    console.log('Updating ID:', req.params.id);
+    console.log('Update data:', JSON.stringify(data));
+    const result = await db.collection(COLLECTION).updateOne(
       { _id: new ObjectId(req.params.id) },
       { $set: data }
     );
+    console.log('Update result:', JSON.stringify(result));
     await client.close();
-    res.json({ success: true });
+    res.json({ success: true, matchedCount: result.matchedCount, modifiedCount: result.modifiedCount });
   } catch (err) {
     console.log('PUT error:', err.message);
     res.status(500).json({ success: false, error: err.message });
